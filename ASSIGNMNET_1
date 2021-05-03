@@ -1,0 +1,28 @@
+PROBLEM STATEMENT:
+1.Write 64-bit ALP to “Hello World” in NASM.
+
+CODE:
+%macro print 4
+      mov rax,%1                      ; system call for system_write
+      mov rdi,%2                       ; file descriptor for std output device
+      mov rsi,%3                        ; address of memory location
+      mov rdx,%4                       ; no of bytes to be displayed
+      syscall                           	 ; call kernel
+%endmacro
+  
+section .data
+     m1 DB "Hello World", 10d,13d              ; define m1 variable 
+						; 10d = Line Feed(bring cursor on next line)
+; 13d = Carriage Return(bring cursor to starting position of new line)
+     l1 equ $-m1                       		 ; define l1 length of m1 variable
+      
+section .text
+  global _start
+  
+_start:
+          print 1,1,m1,l1                ; printing m1
+         
+          mov rax, 60                    ; system call for exit   
+          mov rdi, 0                     ; exit code 0
+          syscall                        ; invoke operating system to exit
+
