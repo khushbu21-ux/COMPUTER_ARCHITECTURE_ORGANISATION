@@ -1,0 +1,101 @@
+PROBELM STATEMENT:
+Write 64-bit ALP to accept number and display it on screen.
+
+CODE:
+%macro scall 4
+    mov rax,%1
+    mov rdi,%2
+    mov rsi,%3
+    mov rdx,%4
+    syscall
+    
+%endmacro
+
+section .data
+    m1 db "Enter 16 Digit (64 Bits) no.:",10d,13d
+    l1 equ $-m1
+    
+    m2 db "Entered 16 Digit (64 Bits) no. is :",10d,13d
+    l2 equ $-m2
+    
+    m3 db "",10d,13d
+    l3 equ $-m3
+    
+section .bss
+    num RESB 20
+    array RESB 200
+    out_no RESB 16
+    
+    
+section .text
+global _start
+
+_start: 
+    scall 1,1,m1,l1
+    scall 0,0,num,17
+    
+    call accept_proc
+    
+    mov rbp,array
+    
+    mov [rbp],rbx
+    
+    
+; Display no.
+    scall 1,1,m2,l2
+    
+    mov rax,rbx
+    
+    call display_proc
+    
+; Exit
+    mov rax,60
+    mov rdi,0
+    syscall
+    
+; Accept Procedure
+accept_proc:
+    mov rsi,num
+    mov rax,0
+    mov rbx,0
+    mov rcx,16
+    
+back:
+    rol rbx,04
+    mov al,[rsi]
+    
+    cmp al,39h
+    jbe next
+    sub al,07h
+    
+next:
+    sub al,30h
+    add rbx,rax
+    
+    inc rsi
+    dec rcx
+    jnz back
+ret
+  
+; Display Procedure
+
+display_proc:
+    mov rbp,out_no
+    mov rcx,16
+    
+back1:   
+    rol rax,04
+    mov dl,al
+    and dl,0Fh
+    cmp dl,09h
+    jbe next1
+    add dl,07h
+next1:
+    add dl,30h
+    mov [rbp],dl
+    inc rbp
+    dec rcx
+    jnz back1
+    scall 1,1,out_no,17
+    scall 1,1,m3,l3
+    ret
