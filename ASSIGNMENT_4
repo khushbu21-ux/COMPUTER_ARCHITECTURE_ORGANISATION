@@ -1,0 +1,253 @@
+PROBLEM STATEMENT:
+Write 64-bit ALP to perform following string operations
+i) Length of String 
+ii)Reverse of String
+
+
+CODE:
+%macro scall 4
+	mov rax,%1
+	mov rdi,%2
+	mov rsi,%3
+	mov rdx,%4
+	syscall
+%endmacro
+
+section .data
+	menumsg db 10,10,'<-----------> Menu for string operations <------------>',10
+		db 10,'1) Calculate the length in hex'
+		db 10,'2) Calculate the length in bcd'
+		db 10,'3) Reverse the string'
+		db 10,'4) Exit',10
+		db 10,'Enter your choice',10
+
+	menumsg_len equ $-menumsg
+
+	m1 db 10,'Enter the string : '
+	l1 equ $-m1
+
+	m2 db 10,'The length of the string in decimal is : '
+	l2 equ $-m2
+	
+	m3 db 10,'Reversed string is : '
+	l3 equ $-m3
+	
+	m4 db 10,'Do you want to continue(y/n) ?  '
+	l4 equ $-m4
+
+	m5 db 10,10,'You have entered wrong choice. Please try again',10,10
+	l5 equ $-m5
+	
+	m6 db 10,'The length of the string in hexadecimal is : '
+	l6 equ $-m6
+
+
+
+section .bss
+
+	accbuff resb 50
+	accbuff_len equ $-accbuff
+
+	revbuff resb 50
+	revbuff_len equ $-revbuff
+
+	char_ans resb 16
+
+	choice resb 02
+	acctlen resq 1 ;reserved quadword allocates 8 bytes
+	
+	count resb 02
+
+
+section .start
+global _start
+_start:
+
+	
+
+menu:
+	scall 1,1,menumsg,menumsg_len
+
+	scall 0,0,choice,02
+
+
+	cmp byte [choice], '1'
+	jne case2
+
+	call lengthinhex_proc
+	jmp exit1
+	
+case2: 
+	cmp byte [choice],'2'
+	jne case3
+	
+	call lengthindec_proc
+	jmp exit1
+
+case3:
+	cmp byte [choice], '3'
+	jne case4
+
+	call reverse_proc
+	jmp exit1
+
+case4:
+	cmp byte [choice], '4'
+	je exit
+
+	scall 1,1,m5,l5
+	jmp menu
+
+exit1:
+	scall 1,1,m4,l4
+	scall  0,0,choice,02
+
+	cmp byte [choice],'y'
+	jne exit
+	jmp menu
+
+exit:
+	mov rax,60
+	mov rbx,0
+	syscall
+
+
+
+;-----------------Enter string procedure-----------------
+
+enterstr_proc:
+	scall 1,1,m1,l1
+	scall 0,0,accbuff,accbuff_len
+
+	dec rax 
+
+	mov [acctlen],rax
+
+	ret
+	
+;-----------------------Length of string in decimal------------------
+lengthindec_proc:
+	call enterstr_proc
+	
+	
+	mov rbx,[acctlen]
+	
+	call display_proc_bcd
+	
+	mov rax,rbx
+	
+	call hextobcd_proc
+	
+	ret
+	
+
+;-----------------------Length of string in hexadecimal---------------------	
+lengthinhex_proc:
+	call enterstr_proc
+	scall 1,1,m2,l2
+	
+	mov rbx,[acctlen]
+	
+	call disp_proc_hex
+	
+	ret
+
+;-------------------------display procedure------------------
+
+disp_proc_hex:
+	mov rdi,char_ans
+	mov rcx,16
+	
+dispUp1:
+	rol rbx,4
+
+	mov dl,bl
+	and dl,0Fh 
+
+	cmp dl,09h
+	jbe next
+
+	add dl,07h
+
+next:
+	add dl,30h
+
+	mov [rdi],dl
+	inc rdi
+
+	loop dispUp1
+
+	scall 1,1,char_ans,16
+
+ret
+
+;-----------------------Reverse string procedure-------------
+
+reverse_proc:
+	call enterstr_proc
+	mov rsi,accbuff
+	mov rdi,revbuff
+	mov rcx,[acctlen]
+	add rsi,rcx
+	dec rsi
+	
+again:
+	mov al,[rsi]
+	mov [rdi],al
+	dec rsi
+	inc rdi
+	loop again
+
+	scall 1,1,m3,l3
+	scall 1,1, revbuff,[acctlen]
+ret	
+	
+;---------------------hex to bcd------------------------
+hextobcd_proc:
+	
+	mov rbx,0Ah
+
+back:
+        xor rdx,rdx
+        div rbx
+        push dx
+        inc byte[count]
+        cmp rax,0h
+        jne back
+        scall 1,1,m2,l2
+
+print_bcd:
+        pop dx
+        add dl,30h
+        mov [char_ans],dl
+        scall 1,1,char_ans,1
+        dec byte[count]
+        jnz print_bcd
+ret
+
+
+display_proc_bcd:
+	mov rdi,char_ans
+	mov rcx,16
+	
+dispDown1:
+	rol rbx,4
+
+	mov dl,bl
+	and dl,0Fh
+
+	cmp dl,09h
+	jbe next2
+
+	add dl,07h
+
+next2:
+	add dl,30h
+
+	mov [rdi],dl
+	inc rdi
+
+	loop dispDown1
+
+
+ret
