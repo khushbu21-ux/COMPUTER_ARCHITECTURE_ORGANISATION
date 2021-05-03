@@ -1,0 +1,82 @@
+PROBLEM STATEMENT:
+Write 64-bit ALP to convert HEX 4-digit input to BCD 5-digit output.
+
+CODE:
+%macro code 4		; macro declared
+    mov rax, %1		; syscall for sys read/write
+    mov rdi, %2		; file descriptor for standard I/O devices
+    mov rsi, %3		; address for memory location
+    mov rdx, %4		; number of bytes of above memory location
+    syscall
+%endmacro
+
+section .data			; data section
+    m1 db "Please enter your HEX number: "
+    l1 equ $-m1
+    
+    m2 db 10d,13d,"Entered number converted to BCD = "
+    l2 equ $-m2
+    
+    m3 db " ",10d,13d
+	l3 equ $-m3
+	
+section .bss		; BLOCK STARTING SYMBOL
+    num resb 6		; variable to store a number entered
+    dig resb 1		; variable to store digit of the number entered
+    ans resb 4		; variable to be assigned with final output to be displayed
+    
+section .text
+global _start
+_start:
+
+    code 1,1,m1,l1
+    code 0,0,num,5          ; accept number from user
+    call accept	         ; call accept procedure
+    mov ax,bx	         ; copy bx into ax
+    call h2b                      ; call hex to bcd conversion procedure
+    
+    mov rax,60                 ; exit process
+    mov rdi,0
+    syscall
+    
+;-------------------------------ACCEPT THE NUMBER--------------------------------
+accept:
+    mov bx,0h               ; initially keep the contents of bx = 0000
+    mov rcx,04              ; counter variable to loop 4 times
+    mov rsi,num
+next:
+    rol bx,04	       ; rol the contents of bx to next digit or by 4 bits
+    mov al,[rsi]              ; mov contents of segment register into accumulator, i.e. , the number
+    cmp al,39h	       ; compare each digit with its ASCII hex 
+    jbe final
+    sub al,07h               
+    
+final:
+    sub al,30h             ; add 30h so as to store the digit equivalent to its ASCII hex
+    add bx,ax	   ; add ax to bx with each loop
+    inc rsi                   ; increase counter to next digit or loop
+    loop next
+ret
+
+;---------------------------HEX to BCD CONVERSION-------------------------------------
+h2b:
+    mov rbx,0Ah         ;set the bx register with 0Ah 
+    
+again:
+    mov rdx,0h	    ; initially set dx as 0
+    div rbx                   ; divide the number by 0A
+    push dx                  ; push the remainder obtained onto a stack
+    inc byte[dig]          ; increase the count
+    cmp rax,0h             ; repeat the process till the remainder is 0
+    jne again
+    code 1,1,m2,l2
+    
+print:
+    pop dx                   ; remove the contents of stack
+    add dl,30h             ; add 30h to it to make it bcd equivalent of its ascii hex
+    mov [ans],dl	    ; copy this contents from dl into ans variable
+    code 1,1,ans,1       ; print it
+    dec byte[dig]         ; decrease the counter, to be repeated
+    jnz print
+    code 1,1,m3,l3
+ret
